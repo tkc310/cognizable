@@ -117,6 +117,109 @@ class CheckLogTest(unittest.TestCase):
         self.assertEqual(check.check_log(text, self.ids), [])
 
 
+HTML_OK = """<!doctype html>
+<html lang="ja"><head><style>
+:root { --measure: 36em; --leading: 1.75; --sem-now: #00f; --sem-act: #0aa; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style></head><body>
+<nav><ol><li><a href="#map">地図</a></li><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li></ol>
+<button id="expand-all">開く</button><select></select></nav>
+<section id="map" data-layer="0"><ol><li>a</li><li>b</li><li>c</li></ol><br></section>
+<section data-layer="1"><a href="#map">地図に戻る</a>
+<ul><li>a</li><li>b</li><li>c</li><li>d</li></ul>
+<details data-layer="2"><summary>一覧</summary>
+<ul><li>1</li><li>2</li><li>3</li><li>4</li><li>5</li><li>6</li></ul></details>
+</section>
+</body></html>
+"""
+
+
+class CheckHtmlTest(unittest.TestCase):
+    def assert_problem(self, text, fragment):
+        problems = check.check_html(text)
+        self.assertTrue(any(fragment in p for p in problems), problems)
+
+    def test_valid_html_has_no_problems(self):
+        self.assertEqual(check.check_html(HTML_OK), [])
+
+    def test_measure_too_wide(self):
+        self.assert_problem(HTML_OK.replace("--measure: 36em", "--measure: 48em"), "D1")
+
+    def test_measure_missing(self):
+        self.assert_problem(HTML_OK.replace("--measure: 36em;", ""), "--measure")
+
+    def test_leading_too_small(self):
+        self.assert_problem(HTML_OK.replace("--leading: 1.75", "--leading: 1.2"), "D2")
+
+    def test_too_many_semantic_colors(self):
+        extra = "--sem-a: #111; --sem-b: #222; --sem-c: #333; --sem-now"
+        self.assert_problem(HTML_OK.replace("--sem-now", extra, 1), "D5")
+
+    def test_justify_is_forbidden(self):
+        self.assert_problem(HTML_OK.replace("</style>", "p { text-align: justify; }</style>"), "両端揃え")
+
+    def test_autoplay_is_forbidden(self):
+        self.assert_problem(HTML_OK.replace("<br>", "<video autoplay></video>"), "autoplay")
+
+    def test_motion_needs_reduced_motion(self):
+        text = HTML_OK.replace("@media (prefers-reduced-motion: no-preference) ", "@media screen ")
+        self.assert_problem(text, "prefers-reduced-motion")
+
+    def test_layer0_is_required(self):
+        self.assert_problem(HTML_OK.replace(' data-layer="0"', ""), "L0")
+
+    def test_layer0_must_not_be_folded(self):
+        text = HTML_OK.replace('<section id="map" data-layer="0">', '<details><summary>s</summary><section id="map" data-layer="0">')
+        text = text.replace("<br></section>", "<br></section></details>")
+        self.assert_problem(text, "L0 を折りたたみ")
+
+    def test_too_many_l1_blocks(self):
+        block = '<section data-layer="1"><a href="#map">戻る</a></section>'
+        self.assert_problem(HTML_OK.replace("</body>", block * 4 + "</body>"), "L1 のブロック")
+
+    def test_l1_needs_back_link(self):
+        self.assert_problem(HTML_OK.replace('<a href="#map">地図に戻る</a>', ""), "地図に戻るリンク")
+
+    def test_long_visible_list(self):
+        self.assert_problem(HTML_OK.replace("<li>d</li>", "<li>d</li><li>e</li>"), "R5")
+
+    def test_long_list_inside_details_is_allowed(self):
+        self.assertEqual(check.check_html(HTML_OK.replace("<li>6</li>", "<li>6</li><li>7</li>")), [])
+
+    def test_details_needs_summary(self):
+        self.assert_problem(HTML_OK.replace("<summary>一覧</summary>", ""), "summary")
+
+    def test_nav_is_required(self):
+        text = HTML_OK.replace("<nav>", "<div>").replace("</nav>", "</div>")
+        self.assert_problem(text, "D9")
+
+    def test_expand_all_is_required(self):
+        self.assert_problem(HTML_OK.replace(' id="expand-all"', ""), "expand-all")
+
+    def test_too_many_settings(self):
+        self.assert_problem(HTML_OK.replace("<select></select>", "<select></select>" * 5), "D13")
+
+
+class CheckReferencesTest(unittest.TestCase):
+    def test_missing_reference_in_skill_text(self):
+        problems = check.check_references("references/transform.md だけを指す")
+        self.assertTrue(any("references/design.md への参照がない" in p for p in problems))
+
+    def test_missing_file(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            problems = check.check_references(" ".join(check.REFERENCES), Path(tmp))
+        self.assertEqual(len(problems), len(check.REFERENCES))
+
+
+class MainTest(unittest.TestCase):
+    def test_html_argument_checks_the_file(self):
+        self.assertEqual(check.main([str(check.TEMPLATE_PATH)]), 0)
+
+    def test_missing_html_file_fails(self):
+        self.assertEqual(check.main(["no-such-file.html"]), 1)
+
+
 class RepositoryTest(unittest.TestCase):
     """リポジトリにある実ファイルが検査を通ることを確かめる。"""
 
@@ -124,6 +227,8 @@ class RepositoryTest(unittest.TestCase):
         skill_text = check.SKILL_PATH.read_text(encoding="utf-8")
         problems, ids = check.check_skill(skill_text)
         problems += check.check_log(check.LOG_PATH.read_text(encoding="utf-8"), ids)
+        problems += check.check_references(skill_text)
+        problems += check.check_html(check.TEMPLATE_PATH.read_text(encoding="utf-8"))
         self.assertEqual(problems, [])
 
 
