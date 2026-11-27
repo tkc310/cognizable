@@ -1,4 +1,4 @@
-"""cognizable スキル、フィードバックログ、HTML の成果物の形式を検査する。
+"""cognizable と cog-* のスキル、フィードバックログ、HTML の成果物の形式を検査する。
 
 使い方:
   python3 scripts/check.py              スキル、ログ、ひな形を検査する
@@ -19,6 +19,10 @@ ROOT = Path(__file__).resolve().parent.parent
 SKILL_PATH = ROOT / "skills" / "cognizable" / "SKILL.md"
 LOG_PATH = ROOT / "feedback" / "log.md"
 SKILL_DIR = SKILL_PATH.parent
+SKILLS_ROOT = SKILL_DIR.parent
+BASE_SKILL = "cognizable"
+BASE_REFERENCE = "cognizable/SKILL.md"  # cog-* のスキルが、出力の決まりとして指すファイル
+SKILL_LINK = re.compile(r"`((?:assets|references)/[\w./-]+)`")
 TEMPLATE_PATH = SKILL_DIR / "assets" / "template.html"
 REFERENCES = ("references/transform.md", "references/design.md", "references/code.md", "assets/template.html")
 
@@ -84,24 +88,32 @@ def rule_sections(text: str) -> list[tuple[str, str]]:
     return sections
 
 
-def check_skill(text: str, dir_name: str = "cognizable") -> tuple[list[str], set[str]]:
-    """SKILL.md を検査し、(問題の一覧, ルール ID の集合) を返す。"""
+def check_frontmatter(text: str, dir_name: str, where: str = "SKILL.md") -> list[str]:
+    """SKILL.md の frontmatter（name と description）を検査する。"""
     problems: list[str] = []
 
     try:
         fm = parse_frontmatter(text)
     except ValueError as exc:
-        return [f"SKILL.md: {exc}"], set()
+        return [f"{where}: {exc}"]
 
     if fm.get("name") != dir_name:
-        problems.append(f"SKILL.md: name が {dir_name!r} ではない（{fm.get('name')!r}）")
+        problems.append(f"{where}: name が {dir_name!r} ではない（{fm.get('name')!r}）")
     description = fm.get("description", "")
     if not description:
-        problems.append("SKILL.md: description がない")
+        problems.append(f"{where}: description がない")
     elif len(description) > DESCRIPTION_MAX:
-        problems.append(f"SKILL.md: description が {DESCRIPTION_MAX} 文字を超えている（{len(description)} 文字）")
+        problems.append(f"{where}: description が {DESCRIPTION_MAX} 文字を超えている（{len(description)} 文字）")
     if "<" in description or ">" in description:
-        problems.append("SKILL.md: description に山かっこを使っている")
+        problems.append(f"{where}: description に山かっこを使っている")
+    return problems
+
+
+def check_skill(text: str, dir_name: str = BASE_SKILL) -> tuple[list[str], set[str]]:
+    """cognizable の SKILL.md を検査し、(問題の一覧, ルール ID の集合) を返す。"""
+    problems = check_frontmatter(text, dir_name)
+    if problems and "frontmatter" in problems[0]:
+        return problems, set()
 
     sections = rule_sections(text)
     if not sections:
@@ -167,6 +179,23 @@ def check_references(skill_text: str, skill_dir: Path = SKILL_DIR) -> list[str]:
         if rel not in skill_text:
             problems.append(f"SKILL.md: {rel} への参照がない")
     return problems
+
+
+def check_companion(text: str, skill_dir: Path) -> list[str]:
+    """cog-* のスキルを検査する。出力に cognizable を適用する指定と、指している別ファイルの実在を見る。"""
+    where = f"skills/{skill_dir.name}/SKILL.md"
+    problems = check_frontmatter(text, skill_dir.name, where)
+    if BASE_REFERENCE not in text:
+        problems.append(f"{where}: 出力に cognizable を適用する指定（{BASE_REFERENCE} への参照）がない")
+    for rel in sorted(set(SKILL_LINK.findall(text))):
+        if not (skill_dir / rel).is_file():
+            problems.append(f"skills/{skill_dir.name}/{rel}: ファイルがない")
+    return problems
+
+
+def companion_dirs(skills_root: Path = SKILLS_ROOT) -> list[Path]:
+    """cognizable 以外のスキルのディレクトリを、名前の順に返す。"""
+    return sorted(d for d in skills_root.iterdir() if d.is_dir() and d.name != BASE_SKILL)
 
 
 class _Structure(HTMLParser):
@@ -256,8 +285,8 @@ class _Structure(HTMLParser):
             self._close(self.stack.pop())
 
 
-def check_html(text: str, where: str = "HTML") -> list[str]:
-    """HTML の成果物を、デザイン規則（D1〜D13）と4層の構造で検査する。"""
+def check_design(text: str, where: str = "HTML") -> list[str]:
+    """HTML を、層の構造によらないデザイン規則（行長、行の高さ、色の数、禁止する書き方、動き）で検査する。"""
     problems: list[str] = []
 
     measure = re.search(r"--measure\s*:\s*([\d.]+)em", text)
@@ -283,6 +312,12 @@ def check_html(text: str, where: str = "HTML") -> list[str]:
             problems.append(f"{where}: {message}")
     if MOTION.search(text) and "prefers-reduced-motion" not in text:
         problems.append(f"{where}: D7: 動きがあるのに prefers-reduced-motion の指定がない")
+    return problems
+
+
+def check_html(text: str, where: str = "HTML") -> list[str]:
+    """HTML の成果物を、デザイン規則（D1〜D13）と4層の構造で検査する。"""
+    problems = check_design(text, where)
 
     parser = _Structure()
     parser.feed(text)
@@ -340,11 +375,24 @@ def main(argv: list[str] | None = None) -> int:
     problems += check_references(skill_text)
     if TEMPLATE_PATH.is_file():
         problems += check_html(TEMPLATE_PATH.read_text(encoding="utf-8"), where="assets/template.html")
+    companions = companion_dirs()
+    for skill_dir in companions:
+        skill_file = skill_dir / "SKILL.md"
+        if not skill_file.is_file():
+            problems.append(f"skills/{skill_dir.name}/SKILL.md: ファイルがない")
+            continue
+        problems += check_companion(skill_file.read_text(encoding="utf-8"), skill_dir)
+        for page in sorted(skill_dir.glob("assets/*.html")):
+            where = f"skills/{skill_dir.name}/assets/{page.name}"
+            problems += check_design(page.read_text(encoding="utf-8"), where=where)
     for problem in problems:
         print(problem)
     if problems:
         return 1
-    print(f"OK: ルール {len(rule_ids)} 件、フィードバックログ、別ファイルの参照、ひな形に問題なし")
+    print(
+        f"OK: ルール {len(rule_ids)} 件、フィードバックログ、別ファイルの参照、ひな形、"
+        f"cognizable を適用するスキル {len(companions)} 件に問題なし"
+    )
     return 0
 
 

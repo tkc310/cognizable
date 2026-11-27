@@ -1,4 +1,5 @@
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -210,6 +211,60 @@ class CheckReferencesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             problems = check.check_references(" ".join(check.REFERENCES), Path(tmp))
         self.assertEqual(len(problems), len(check.REFERENCES))
+
+
+COMPANION_OK = """---
+name: cog-demo
+description: 'テスト用の説明'
+---
+
+# cog-demo
+
+出力には `cognizable/SKILL.md` の決まりを適用する。ひな形は `assets/page.html`。
+"""
+
+
+class CheckCompanionTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.dir = Path(self.tmp.name) / "cog-demo"
+        (self.dir / "assets").mkdir(parents=True)
+        (self.dir / "assets" / "page.html").write_text("", encoding="utf-8")
+
+    def test_valid_companion_has_no_problems(self):
+        self.assertEqual(check.check_companion(COMPANION_OK, self.dir), [])
+
+    def test_name_must_match_directory(self):
+        problems = check.check_companion(COMPANION_OK.replace("name: cog-demo", "name: other"), self.dir)
+        self.assertTrue(any("name" in p for p in problems))
+
+    def test_must_apply_cognizable(self):
+        problems = check.check_companion(COMPANION_OK.replace("cognizable/SKILL.md", "別の決まり"), self.dir)
+        self.assertTrue(any("cognizable を適用する指定" in p for p in problems))
+
+    def test_linked_file_must_exist(self):
+        (self.dir / "assets" / "page.html").unlink()
+        problems = check.check_companion(COMPANION_OK, self.dir)
+        self.assertTrue(any("assets/page.html: ファイルがない" in p for p in problems))
+
+    def test_companion_dirs_skip_cognizable(self):
+        root = Path(self.tmp.name)
+        (root / "cognizable").mkdir()
+        self.assertEqual([d.name for d in check.companion_dirs(root)], ["cog-demo"])
+
+
+class CheckDesignTest(unittest.TestCase):
+    PAGE = "<style>:root { --measure: 36em; --leading: 1.75; }</style><main></main>"
+
+    def test_page_without_layers_passes_design_check(self):
+        self.assertEqual(check.check_design(self.PAGE), [])
+
+    def test_page_without_layers_fails_structure_check(self):
+        self.assertTrue(any("L0" in p for p in check.check_html(self.PAGE)))
+
+    def test_design_check_catches_wide_measure(self):
+        self.assertTrue(any("D1" in p for p in check.check_design(self.PAGE.replace("36em", "60em"))))
 
 
 class MainTest(unittest.TestCase):
