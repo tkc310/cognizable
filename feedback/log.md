@@ -1,6 +1,6 @@
 # フィードバックログ
 
-sharpen を使っていて読みにくかった出力を、1件ずつ記録する。記録の形式は `skills/sharpen/SKILL.md` の「フィードバックを受けたとき」にある。改訂の手順は `docs/growth.md` にある。
+cognizable を使っていて読みにくかった出力を、1件ずつ記録する。記録の形式は `skills/cognizable/SKILL.md` の「フィードバックを受けたとき」にある。改訂の手順は `docs/growth.md` にある。
 
 新しい記録はこのファイルの末尾に追記する。`python3 scripts/check.py` が形式を検査する。
 

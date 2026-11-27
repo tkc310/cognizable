@@ -7,13 +7,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import check  # noqa: E402
 
 SKILL_OK = """---
-name: sharpen
+name: cognizable
 description: 'テスト用の説明'
 metadata:
   version: "0.1.0"
 ---
 
-# sharpen
+# cognizable
 
 ## ルール
 
@@ -51,11 +51,11 @@ class CheckSkillTest(unittest.TestCase):
         self.assertEqual(ids, {"R1", "R2"})
 
     def test_missing_frontmatter(self):
-        problems, _ = check.check_skill("# sharpen\n")
+        problems, _ = check.check_skill("# cognizable\n")
         self.assertEqual(problems, ["SKILL.md: frontmatter がない"])
 
     def test_wrong_name(self):
-        problems, _ = check.check_skill(SKILL_OK.replace("name: sharpen", "name: other"))
+        problems, _ = check.check_skill(SKILL_OK.replace("name: cognizable", "name: other"))
         self.assertTrue(any("name" in p for p in problems))
 
     def test_description_too_long(self):

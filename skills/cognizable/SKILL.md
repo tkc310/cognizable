@@ -1,13 +1,13 @@
 ---
-name: sharpen
-description: 'ワーキングメモリが小さく言語理解が高い読み手に合わせて出力を整形する。結論と次の行動を先頭に置き、手順を番号で区切り、指示語で前を読み返させず、状態を毎回書き直す。/sharpen で開始し、「sharpen 終了」まで続ける。/sharpen doc で資料やソースコードを4層の成果物に変換する。/sharpen design でデザインを整える。'
+name: cognizable
+description: 'ワーキングメモリが小さく言語理解が高い読み手に合わせて出力を整形する。結論と次の行動を先頭に置き、手順を番号で区切り、指示語で前を読み返させず、状態を毎回書き直す。/cognizable で開始し、「cognizable 終了」まで続ける。/cognizable doc で資料やソースコードを4層の成果物に変換する。/cognizable design でデザインを整える。'
 disable-model-invocation: true
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   tags: "Working Memory, Output Style, Japanese, Formatting, Document Design"
 ---
 
-# sharpen
+# cognizable
 
 読み手はワーキングメモリが小さい。出力は短くするだけでは足りない。読み手が頭の中に何も保持しなくても、画面だけを見て動ける形にする。
 
@@ -17,22 +17,22 @@ metadata:
 
 このルールは、以降のすべての応答に適用する。話題が変わっても、数ターン経っても切れない。適用中か迷ったら、適用中とみなす。
 
-読み手が「sharpen 終了」または「通常モード」と言ったときだけ解除する。解除したら1行で伝え、通常の文体に戻る。
+読み手が「cognizable 終了」または「通常モード」と言ったときだけ解除する。解除したら1行で伝え、通常の文体に戻る。
 
 ## モード
 
-sharpen には3つのモードがある。モードごとの詳細は別ファイルにある。そのモードを使うときだけ読む。
+cognizable には3つのモードがある。モードごとの詳細は別ファイルにある。そのモードを使うときだけ読む。
 
 | 起動 | すること | 読むファイル |
 |------|----------|--------------|
-| `/sharpen` | 以降の応答を、下のルール R1〜R16 で整形する | なし |
-| `/sharpen doc 対象` | 資料を4層の成果物に変換する | `references/transform.md` と `references/design.md` |
-| `/sharpen doc 対象`（対象がソースコード） | ソースコードを4層の成果物に変換する | 上の2つと `references/code.md` |
-| `/sharpen design 対象` | 既存のページや図の見た目を整える | `references/design.md` |
+| `/cognizable` | 以降の応答を、下のルール R1〜R16 で整形する | なし |
+| `/cognizable doc 対象` | 資料を4層の成果物に変換する | `references/transform.md` と `references/design.md` |
+| `/cognizable doc 対象`（対象がソースコード） | ソースコードを4層の成果物に変換する | 上の2つと `references/code.md` |
+| `/cognizable design 対象` | 既存のページや図の見た目を整える | `references/design.md` |
 
 HTML の成果物は `assets/template.html` を元に作る。
 
-`/sharpen doc` と `/sharpen design` は1回の変換で終わる。会話のルール R1〜R16 は、変換の前後の応答にも適用する。
+`/cognizable doc` と `/cognizable design` は1回の変換で終わる。会話のルール R1〜R16 は、変換の前後の応答にも適用する。
 
 ## 前提: この読み手に何が起きるか
 
@@ -209,7 +209,7 @@ HTML の成果物は `assets/template.html` を元に作る。
 
 ## フィードバックを受けたとき
 
-このスキルは使いながら育てる。読み手が「読みにくい」「合わない」「sharpen: 〜」と言ったら、次の2つを行う。
+このスキルは使いながら育てる。読み手が「読みにくい」「合わない」「cognizable: 〜」と言ったら、次の2つを行う。
 
 1. 指摘された出力を、ルールに沿って書き直す。
 2. 書き直しの後に、下の形式でフィードバック記録を1件出す。リポジトリに書き込めるなら `feedback/log.md` の末尾に追記する。書き込めないなら、読み手がそのまま貼れるようにコードブロックで出す。
@@ -230,15 +230,15 @@ HTML の成果物は `assets/template.html` を元に作る。
 
 ### 読み手が言い出すのを待たない
 
-読み手には、読みにくくても我慢して読み進める傾向がある。指摘を待つだけでは、記録がたまらない。次の場面で、sharpen の側から確認を1行だけ出す。
+読み手には、読みにくくても我慢して読み進める傾向がある。指摘を待つだけでは、記録がたまらない。次の場面で、cognizable の側から確認を1行だけ出す。
 
-- `/sharpen doc` か `/sharpen design` の成果物を渡した直後。毎回出す。
+- `/cognizable doc` か `/cognizable design` の成果物を渡した直後。毎回出す。
 - 会話モードで、見出しが3つ以上ある長い出力を初めて出した直後。1つの会話で1回だけ出す。
 
 確認の文は次の形に固定する。R10 の「次の一手」の後に置く。
 
 ```
-sharpen 確認: 読みにくかった箇所があれば、節の名前か一言で。なければ返事は不要。
+cognizable 確認: 読みにくかった箇所があれば、節の名前か一言で。なければ返事は不要。
 ```
 
 読み手が答えなければ、問題なしとして進める。同じ確認を繰り返さない。

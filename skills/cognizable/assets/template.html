@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>資料の名前</title>
 <!--
-  sharpen の成果物のひな形。規則は references/design.md の D1〜D13。
+  cognizable の成果物のひな形。規則は references/design.md の D1〜D13。
   使い方: CSS と script は変えない。body の中の文と数だけを入れ替える。
   層: data-layer="0" は1画面の要約。"1" はブロックの概要。"2" は詳細。"3" は原典。
 -->
@@ -352,7 +352,7 @@ details[open] > summary { border-bottom: 1px solid var(--line); }
 (function () {
   var root = document.documentElement;
   var details = Array.prototype.slice.call(document.querySelectorAll("details"));
-  var KEY = "sharpen-settings";
+  var KEY = "cognizable-settings";
 
   function load() {
     try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }

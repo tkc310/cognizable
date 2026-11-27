@@ -1,4 +1,4 @@
-# sharpen
+# cognizable
 
 ワーキングメモリが小さく、言語理解が高い読み手に合わせて、AI エージェントの出力を整形するスキル。使いながら、合わなかった出力を記録してルールを育てる。
 
@@ -11,15 +11,15 @@
 - 「上記」「それ」で前を読み返させない。
 - 毎回「今どこまで進んだか」を書き直す。
 
-ルールの全体は [`skills/sharpen/SKILL.md`](skills/sharpen/SKILL.md) にある。
+ルールの全体は [`skills/cognizable/SKILL.md`](skills/cognizable/SKILL.md) にある。
 
 ## 3つのモード
 
 | 起動 | すること |
 |------|----------|
-| `/sharpen` | 以降の応答を、ルール R1〜R16 で整形する |
-| `/sharpen doc 対象` | 資料やソースコードを、4層の成果物（HTML の1ページ）に変換する |
-| `/sharpen design 対象` | 既存のページや図の見た目を、デザイン規則 D1〜D13 で整える |
+| `/cognizable` | 以降の応答を、ルール R1〜R16 で整形する |
+| `/cognizable doc 対象` | 資料やソースコードを、4層の成果物（HTML の1ページ）に変換する |
+| `/cognizable design 対象` | 既存のページや図の見た目を、デザイン規則 D1〜D13 で整える |
 
 4層は次の順に深くなる。
 
@@ -32,25 +32,23 @@
 
 詳細は次のファイルにある。
 
-- 変換の手順: [`references/transform.md`](skills/sharpen/references/transform.md)
-- ソースコードの変換: [`references/code.md`](skills/sharpen/references/code.md)
-- デザイン規則: [`references/design.md`](skills/sharpen/references/design.md)
-- HTML のひな形: [`assets/template.html`](skills/sharpen/assets/template.html)
+- 変換の手順: [`references/transform.md`](skills/cognizable/references/transform.md)
+- ソースコードの変換: [`references/code.md`](skills/cognizable/references/code.md)
+- デザイン規則: [`references/design.md`](skills/cognizable/references/design.md)
+- HTML のひな形: [`assets/template.html`](skills/cognizable/assets/template.html)
 
 ## 使い方
 
-1. `skills/sharpen/` を、使っているエージェントのスキル置き場にコピーする（Claude Code なら `~/.claude/skills/sharpen/`）。
-2. 会話の中で `/sharpen` と打つ。
-3. 資料を変換するときは `/sharpen doc 対象` と打つ。
-4. 止めるときは「sharpen 終了」と打つ。
-
-pstack にも同じ名前の `/sharpen` スキルがある。両方を入れるとコマンド名が衝突するので、どちらかの置き場のディレクトリ名を変える。
+1. `skills/cognizable/` を、使っているエージェントのスキル置き場にコピーする（Claude Code なら `~/.claude/skills/cognizable/`）。
+2. 会話の中で `/cognizable` と打つ。
+3. 資料を変換するときは `/cognizable doc 対象` と打つ。
+4. 止めるときは「cognizable 終了」と打つ。
 
 ## 育て方
 
-読みにくい出力に出会ったら「読みにくい」と伝える。sharpen が書き直し、記録を1件出す。記録は [`feedback/log.md`](feedback/log.md) にためる。見直しと反映の手順は [`docs/growth.md`](docs/growth.md) にある。
+読みにくい出力に出会ったら「読みにくい」と伝える。cognizable が書き直し、記録を1件出す。記録は [`feedback/log.md`](feedback/log.md) にためる。見直しと反映の手順は [`docs/growth.md`](docs/growth.md) にある。
 
-読みにくくても言い出しにくい場面に備えて、sharpen は成果物を渡した直後に確認を1行だけ出す。
+読みにくくても言い出しにくい場面に備えて、cognizable は成果物を渡した直後に確認を1行だけ出す。
 
 読み手像は [`docs/persona.md`](docs/persona.md)、ルールごとの根拠は [`docs/evidence.md`](docs/evidence.md) にある。
 
@@ -72,4 +70,4 @@ python3 -m unittest discover -s tests -v
 
 ## 出典
 
-ルールの構成は [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)（MIT License）を元にしている。ライセンス本文は [`skills/sharpen/LICENSE.i-have-adhd`](skills/sharpen/LICENSE.i-have-adhd) にある。
+ルールの構成は [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)（MIT License）を元にしている。ライセンス本文は [`skills/cognizable/LICENSE.i-have-adhd`](skills/cognizable/LICENSE.i-have-adhd) にある。
