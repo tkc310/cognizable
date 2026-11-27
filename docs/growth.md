@@ -2,6 +2,17 @@
 
 cognizable は、使って合わなかった出力を記録し、記録がたまったらルールを直す。この文書はその手順を決める。
 
+## 関係する文書
+
+| 文書 | 内容 |
+|------|------|
+| [`skills/cognizable/SKILL.md`](../skills/cognizable/SKILL.md) | 会話のルール R1〜R19 の全体 |
+| [`skills/cognizable/references/design.md`](../skills/cognizable/references/design.md) | デザイン規則 D1〜D13 の全体 |
+| [`skills/cognizable/references/transform.md`](../skills/cognizable/references/transform.md) | 資料を4層の成果物に変換する手順 |
+| [`skills/cognizable/references/code.md`](../skills/cognizable/references/code.md) | ソースコードを変換する手順 |
+| [`docs/research/evidence.md`](research/evidence.md) | ルールと規則ごとの根拠と、証拠の強さ |
+| [`docs/persona.md`](persona.md) | cognizable が想定する読み手像 |
+
 ## 1. 記録する
 
 読みにくい出力に出会ったら、その場で cognizable に「読みにくい」「cognizable: 〜」と伝える。cognizable は出力を書き直し、フィードバック記録を1件出す。
@@ -28,7 +39,7 @@ cognizable は、使って合わなかった出力を記録し、記録がたま
 
 研究や公的な指針を根拠にするときは、同じ困りごとが2件たまるのを待たずにルールを足してよい。条件は次の2つ。
 
-1. `docs/evidence.md` に、ルールの ID、証拠の強さ、出典を1行で書く。
+1. `docs/research/evidence.md` に、ルールの ID、証拠の強さ、出典を1行で書く。
 2. 証拠の強さが「弱」のルールは、合わないという記録が1件出た時点で見直す。
 
 デザイン規則（`skills/cognizable/references/design.md` の D1 から）も同じ手順で直す。

@@ -3,7 +3,7 @@ name: cog-plan
 description: '実装の計画を、成果物とプロセスの流れ図（PFD）にする。最後に必要な成果物から逆算し、判断の根拠と暗黙の仮定を表に出す。人が決める判断には担当「人間」と書き、エージェントは決めない。/cog-plan 実装したい内容 で使う。出力には cognizable を適用する。'
 disable-model-invocation: true
 metadata:
-  version: "0.5.0"
+  version: "0.5.1"
   tags: "Working Memory, Comprehension, Japanese"
 ---
 

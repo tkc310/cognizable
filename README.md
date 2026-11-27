@@ -11,8 +11,6 @@
 - 「上記」「それ」で前を読み返させない。
 - 毎回「今どこまで進んだか」を書き直す。
 
-ルールの全体は [`skills/cognizable/SKILL.md`](skills/cognizable/SKILL.md) にある。
-
 ## 3つのモード
 
 | 起動 | すること |
@@ -30,13 +28,6 @@
 | L2 | 種類別の詳細。手順、参照、解説 |
 | L3 | 原典へのリンク |
 
-詳細は次のファイルにある。
-
-- 変換の手順: [`references/transform.md`](skills/cognizable/references/transform.md)
-- ソースコードの変換: [`references/code.md`](skills/cognizable/references/code.md)
-- デザイン規則: [`references/design.md`](skills/cognizable/references/design.md)
-- HTML のひな形: [`assets/template.html`](skills/cognizable/assets/template.html)
-
 ## 理解を助ける4つのスキル
 
 AI と開発するときに、読み手が計画、設計、知識、変更を理解するためのスキル。4つとも、出力に cognizable のルール R1〜R19 を適用する。
@@ -53,13 +44,6 @@ AI と開発するときに、読み手が計画、設計、知識、変更を�
 - `/cog-ask html 設計したい内容` と打つと、1画面に1問の HTML（[`wizard.html`](skills/cog-ask/assets/wizard.html)）で問いを出す。
 - `/cog-review html 対象` と打つと、4層の HTML で変更を案内する。
 
-各スキルの決まりは次のファイルにある。
-
-- [`skills/cog-plan/SKILL.md`](skills/cog-plan/SKILL.md)
-- [`skills/cog-ask/SKILL.md`](skills/cog-ask/SKILL.md)
-- [`skills/cog-learn/SKILL.md`](skills/cog-learn/SKILL.md)
-- [`skills/cog-review/SKILL.md`](skills/cog-review/SKILL.md)
-
 ## 使い方
 
 1. `skills/` の中の5つのディレクトリを、使っているエージェントのスキル置き場にコピーする（Claude Code なら `~/.claude/skills/`）。`cog-` で始まる4つのスキルは `cognizable/SKILL.md` を読むため、`cognizable/` と同じ置き場に置く。
@@ -73,7 +57,7 @@ AI と開発するときに、読み手が計画、設計、知識、変更を�
 
 読みにくくても言い出しにくい場面に備えて、cognizable は成果物を渡した直後に確認を1行だけ出す。
 
-読み手像は [`docs/persona.md`](docs/persona.md)、ルールごとの根拠は [`docs/evidence.md`](docs/evidence.md) にある。
+ルールの全体、ルールごとの根拠、読み手像への案内は、[`docs/growth.md`](docs/growth.md) の「関係する文書」にある。
 
 ## 検査
 

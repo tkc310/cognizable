@@ -3,7 +3,7 @@ name: cog-learn
 description: '読み手が判断や理解で詰まった箇所を特定し、約5分のレッスンで教える。レッスンは3ステップで、手元の実際のコードや資料を引用する。各ステップに確認の問いを1問、最後に説明の問いを1問出す。/cog-learn または /cog-learn 話題 で使う。出力には cognizable を適用する。'
 disable-model-invocation: true
 metadata:
-  version: "0.5.0"
+  version: "0.5.1"
   tags: "Working Memory, Comprehension, Japanese"
 ---
 

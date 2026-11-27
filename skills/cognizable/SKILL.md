@@ -3,7 +3,7 @@ name: cognizable
 description: 'ワーキングメモリが小さく言語理解が高い読み手に合わせて出力を整形する。結論と次の行動を先頭に置き、手順を番号で区切り、指示語で前を読み返させず、状態を毎回書き直す。/cognizable で開始し、「cognizable 終了」まで続ける。/cognizable doc で資料やソースコードを4層の成果物に変換する。/cognizable design でデザインを整える。'
 disable-model-invocation: true
 metadata:
-  version: "0.5.0"
+  version: "0.5.1"
   tags: "Working Memory, Output Style, Japanese, Formatting, Document Design"
 ---
 
@@ -321,4 +321,4 @@ cognizable 確認: 読みにくかった箇所があれば、節の名前か一�
 
 ## 根拠
 
-ルールごとの根拠と証拠の強さは、リポジトリの `docs/evidence.md` にある。読み手像は `docs/persona.md` にある。
+ルールごとの根拠と証拠の強さは、リポジトリの `docs/research/evidence.md` にある。読み手像は `docs/persona.md` にある。
