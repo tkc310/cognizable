@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>設計の問い</title>
+<!--
+  cog-ask の HTML のひな形。1画面に1問を表示する。サーバーは要らない。ファイルを開くだけで動く。
+  見た目の規則は cognizable/references/design.md の D1〜D13。
+
+  使い方: CSS と、下の「ここから下は変えない」より後の script は変えない。
+          TITLE と QUESTIONS だけを書き換える。
+
+  TITLE: 何を決めるための問いかを、1文で書く。
+
+  QUESTIONS: 問いの配列。配列の順番が、表示の順番になる。1問の形は次のとおり。
+    {
+      id: "token-storage",          // 半角の英数字とハイフン。回答に付く名前。問いごとに変える。
+      question: "招待トークンを、データベースにどの形で保存するか。",   // 主語と目的語を省略しない1文
+      background: "招待トークンは、招待メールのリンクに入る文字列。",   // 2文まで。用語の定義を含める
+      options: [                    // 4つまで。recommended: true は1つだけ
+        { label: "ハッシュ化して保存する", effect: "漏れてもトークンを復元できない。", recommended: true },
+        { label: "そのまま保存する", effect: "実装は最も単純。漏れるとトークンをそのまま使われる。" }
+      ],
+      reason: "既存のパスワードリセットのトークンが、同じ方式で保存されているため。",  // 推奨の理由。事実に基づけて書く
+      table: {                      // 省略できる。選択肢を2つ以上の観点で比べるときだけ書く
+        head: ["選択肢", "実装の量", "漏れたときの被害"],
+        rows: [["A", "中", "小"], ["B", "小", "大"]]
+      }
+    }
+  推奨できる根拠がない問いは、recommended を付けず、reason に推奨を付けない理由を書く。
+-->
+<style>
+:root {
+  /* D1: 行長。D2: 文字と行間 */
+  --measure: 36em;
+  --leading: 1.75;
+  --size: 17px;
+  /* D4: 本文のコントラストは 7:1 以上 */
+  --bg: #fafaf7;
+  --surface: #f0efea;
+  --text: #1f1f1f;
+  --line: #6b6b66;
+  /* D5: 意味を持つ色は4色まで */
+  --sem-now: #1d4ed8;
+  --sem-act: #0f766e;
+  --sem-warn: #b45309;
+  --sem-ok: #4d7c0f;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c;
+    --surface: #23262c;
+    --text: #ececea;
+    --line: #9a9a94;
+    --sem-now: #8ab4f8;
+    --sem-act: #5eead4;
+    --sem-warn: #fbbf24;
+    --sem-ok: #a3e635;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { font-size: var(--size); }
+body {
+  margin: 0;
+  padding: 0 16px 4rem;
+  background: var(--bg);
+  color: var(--text);
+  /* D3: ゴシック体1種 */
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", Meiryo, sans-serif;
+  line-height: var(--leading);
+  text-align: start;
+}
+main { max-width: var(--measure); margin: 0 auto; padding-top: 1.5rem; }
+h1 { font-size: 1rem; font-weight: 400; margin: 0 0 1rem; }
+h2 { font-size: 1.3rem; line-height: 1.5; margin: 0.4rem 0 1.2rem; }
+h2:focus { outline: none; }
+p { margin: 0 0 1rem; }
+.label { font-weight: 700; }
+
+/* 今どこにいるか */
+.progress { margin: 0 0 1.5rem; }
+.progress p { margin: 0 0 0.4rem; }
+.steps { display: flex; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.steps li { flex: 1; height: 8px; border-radius: 4px; border: 1px solid var(--line); }
+.steps li.done { background: var(--sem-ok); border-color: var(--sem-ok); }
+.steps li.now { background: var(--sem-now); border-color: var(--sem-now); }
+
+/* 選択肢 */
+fieldset { border: 0; margin: 0 0 1rem; padding: 0; }
+legend { padding: 0; margin-bottom: 0.5rem; }
+.option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.7rem;
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  cursor: pointer;
+}
+.option:has(input:checked) { border: 2px solid var(--sem-now); padding: calc(0.7rem - 1px) calc(0.9rem - 1px); background: var(--surface); }
+.option input[type="radio"] { margin-top: 0.45rem; width: 1.1rem; height: 1.1rem; accent-color: var(--sem-now); }
+.option .name { font-weight: 700; }
+.option .effect { grid-column: 2; }
+.badge { margin-left: 0.5rem; padding: 0.05rem 0.5rem; border: 1px solid var(--sem-act); border-radius: 999px; color: var(--sem-act); font-size: 0.85rem; font-weight: 700; white-space: nowrap; }
+input[type="text"], textarea {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+textarea { min-height: 4.5rem; resize: vertical; }
+.field { display: block; margin-bottom: 1rem; }
+.other { grid-column: 2; margin-top: 0.4rem; }
+
+/* 比較の表 */
+.table-wrap { overflow-x: auto; margin-bottom: 1rem; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--line); padding: 0.4rem 0.7rem; text-align: start; vertical-align: top; }
+th { background: var(--surface); }
+
+/* 操作 */
+.actions { display: flex; gap: 0.8rem; margin-top: 1.5rem; }
+button {
+  min-height: 44px;
+  padding: 0.5rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+button.primary { background: var(--sem-now); border-color: var(--sem-now); color: var(--bg); font-weight: 700; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--sem-now); outline-offset: 2px; }
+.hint { color: var(--sem-warn); font-weight: 700; min-height: 1.75em; margin: 0.6rem 0 0; }
+.done-note { color: var(--sem-ok); font-weight: 700; min-height: 1.75em; margin: 0.6rem 0 0; }
+
+/* 最後の画面 */
+dl { margin: 0 0 1rem; }
+dt { font-weight: 700; margin-top: 0.9rem; }
+dd { margin: 0; }
+dd button { min-height: 0; padding: 0.1rem 0.7rem; margin-top: 0.3rem; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title"></h1>
+  <div class="progress" id="progress"></div>
+  <section id="screen" aria-live="polite"></section>
+</main>
+
+<script>
+const TITLE = "招待機能の設計を決めるための問い";
+
+const QUESTIONS = [
+  {
+    id: "token-storage",
+    question: "招待トークンを、データベースにどの形で保存するか。",
+    background: "招待トークンは、招待メールのリンクに入る文字列。データベースが漏れた場合に、保存の形で被害が変わる。",
+    options: [
+      { label: "ハッシュ化して保存する", effect: "漏れてもトークンを復元できない。", recommended: true },
+      { label: "そのまま保存する", effect: "実装は最も単純。漏れるとトークンをそのまま使われる。" },
+      { label: "保存しない", effect: "署名付きトークンにして、検証だけを行う。失効の管理が別に必要になる。" }
+    ],
+    reason: "既存のパスワードリセットのトークンが、同じハッシュ化の方式で保存されているため。",
+    table: {
+      head: ["選択肢", "実装の量", "漏れたときの被害"],
+      rows: [["A", "中", "小"], ["B", "小", "大"], ["C", "大", "小"]]
+    }
+  },
+  {
+    id: "token-expiry",
+    question: "招待トークンの有効期限を、何日にするか。",
+    background: "有効期限は、招待メールのリンクが使える期間。期限が長いほど、転送されたメールから第三者が登録する危険が増える。",
+    options: [
+      { label: "7日", effect: "招待された人が週末をまたいでも登録できる。", recommended: true },
+      { label: "1日", effect: "危険は最も小さい。招待された人が期限切れに当たりやすい。" },
+      { label: "30日", effect: "期限切れの問い合わせは減る。使われないトークンが長く残る。" }
+    ],
+    reason: "既存のメールアドレス確認のリンクが、7日で失効するため。"
+  }
+];
+
+/* ---- ここから下は変えない ---- */
+(function () {
+  "use strict";
+  var LETTERS = ["A", "B", "C", "D"];
+  var OTHER = "other";
+  var UNSURE = "unsure";
+  var answers = QUESTIONS.map(function () { return { choice: null, other: "", memo: "" }; });
+  var index = 0;
+  var screen = document.getElementById("screen");
+  var progress = document.getElementById("progress");
+
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (key) {
+      if (key === "text") node.textContent = attrs[key];
+      else if (key === "class") node.className = attrs[key];
+      else node.setAttribute(key, attrs[key]);
+    });
+    (children || []).forEach(function (child) { if (child) node.appendChild(child); });
+    return node;
+  }
+
+  function labelled(label, text) {
+    return el("p", {}, [el("span", { class: "label", text: label + ": " }), document.createTextNode(text)]);
+  }
+
+  function answered(i) {
+    var a = answers[i];
+    if (a.choice === null) return false;
+    return a.choice !== OTHER || a.other.trim() !== "";
+  }
+
+  function answerText(i) {
+    var a = answers[i];
+    if (a.choice === null) return "未回答";
+    if (a.choice === UNSURE) return "分からない";
+    if (a.choice === OTHER) return "その他: " + a.other.trim();
+    var n = Number(a.choice);
+    return LETTERS[n] + ". " + QUESTIONS[i].options[n].label;
+  }
+
+  function renderProgress() {
+    progress.textContent = "";
+    var last = index >= QUESTIONS.length;
+    var done = answers.filter(function (_, i) { return answered(i); }).length;
+    var text = last
+      ? "回答の確認（全 " + QUESTIONS.length + " 問のうち、回答済み " + done + " 問）"
+      : "問い " + (index + 1) + " / " + QUESTIONS.length + "（回答済み " + done + " 問）";
+    progress.appendChild(el("p", { text: text }));
+    var steps = el("ol", { class: "steps", "aria-hidden": "true" });
+    QUESTIONS.forEach(function (_, i) {
+      steps.appendChild(el("li", { class: i === index ? "now" : answered(i) ? "done" : "" }));
+    });
+    progress.appendChild(steps);
+  }
+
+  function option(i, value, name, effect, recommended) {
+    var input = el("input", { type: "radio", name: "choice", value: String(value) });
+    if (answers[i].choice === String(value)) input.checked = true;
+    input.addEventListener("change", function () {
+      answers[i].choice = String(value);
+      renderProgress();
+      document.getElementById("hint").textContent = "";
+    });
+    var head = el("span", {}, [el("span", { class: "name", text: name })]);
+    if (recommended) head.appendChild(el("span", { class: "badge", text: "推奨" }));
+    return el("label", { class: "option" }, [input, head, effect ? el("span", { class: "effect", text: effect }) : null]);
+  }
+
+  function renderQuestion() {
+    var q = QUESTIONS[index];
+    var a = answers[index];
+    var i = index;
+    screen.textContent = "";
+    var heading = el("h2", { tabindex: "-1", text: q.question });
+    screen.appendChild(heading);
+    if (q.background) screen.appendChild(labelled("背景", q.background));
+
+    var set = el("fieldset", {}, [el("legend", { class: "label", text: "選択肢（1つ選ぶ）" })]);
+    q.options.slice(0, LETTERS.length).forEach(function (o, n) {
+      set.appendChild(option(i, n, LETTERS[n] + ". " + o.label, o.effect, o.recommended));
+    });
+    var other = option(i, OTHER, "その他", "選択肢に合うものがないときに選び、考えを一言で書く。", false);
+    var otherInput = el("input", { type: "text", class: "other", "aria-label": "その他の内容" });
+    otherInput.value = a.other;
+    otherInput.addEventListener("input", function () {
+      a.other = otherInput.value;
+      if (a.choice !== OTHER) {
+        a.choice = OTHER;
+        other.querySelector("input[type=radio]").checked = true;
+      }
+      renderProgress();
+    });
+    other.appendChild(otherInput);
+    set.appendChild(other);
+    set.appendChild(option(i, UNSURE, "分からない", "判断の材料が足りないときに選ぶ。この問いは未決のまま残る。", false));
+    screen.appendChild(set);
+
+    if (q.table) {
+      var thead = el("thead", {}, [el("tr", {}, q.table.head.map(function (h) { return el("th", { scope: "col", text: h }); }))]);
+      var tbody = el("tbody", {}, q.table.rows.map(function (row) {
+        return el("tr", {}, row.map(function (cell) { return el("td", { text: cell }); }));
+      }));
+      screen.appendChild(el("div", { class: "table-wrap" }, [el("table", {}, [thead, tbody])]));
+    }
+    if (q.reason) {
+      var hasRecommended = q.options.some(function (o) { return o.recommended; });
+      screen.appendChild(labelled(hasRecommended ? "推奨の理由" : "推奨を付けない理由", q.reason));
+    }
+
+    var memo = el("textarea", {});
+    memo.value = a.memo;
+    memo.addEventListener("input", function () { a.memo = memo.value; });
+    screen.appendChild(el("label", { class: "field" }, [el("span", { class: "label", text: "補足（書かなくてよい）" }), memo]));
+
+    var back = el("button", { type: "button", text: "前の問いに戻る" });
+    back.disabled = index === 0;
+    back.addEventListener("click", function () { go(index - 1); });
+    var isLast = index === QUESTIONS.length - 1;
+    var next = el("button", { type: "button", class: "primary", text: isLast ? "回答を確認する" : "次の問いへ進む" });
+    next.addEventListener("click", function () {
+      if (!answered(i)) {
+        document.getElementById("hint").textContent =
+          a.choice === OTHER ? "「その他」の内容を書くと、次へ進める。" : "選択肢を1つ選ぶと、次へ進める。";
+        return;
+      }
+      go(index + 1);
+    });
+    screen.appendChild(el("div", { class: "actions" }, [back, next]));
+    screen.appendChild(el("p", { class: "hint", id: "hint", role: "status" }));
+    heading.focus();
+  }
+
+  function summaryText() {
+    var lines = ["cog-ask の回答: " + TITLE, ""];
+    QUESTIONS.forEach(function (q, i) {
+      lines.push("問い " + (i + 1) + "（" + q.id + "）: " + q.question);
+      lines.push("回答: " + answerText(i));
+      if (answers[i].memo.trim()) lines.push("補足: " + answers[i].memo.trim());
+      lines.push("");
+    });
+    return lines.join("\n").trim() + "\n";
+  }
+
+  function copy(text, note) {
+    function fallback() {
+      var area = el("textarea", {});
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      document.body.removeChild(area);
+      note.textContent = ok
+        ? "回答をコピーした。会話に貼り付けて送る。"
+        : "コピーできなかった。下の欄の文字をすべて選び、手でコピーする。";
+      if (!ok) document.getElementById("raw").hidden = false;
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () {
+        note.textContent = "回答をコピーした。会話に貼り付けて送る。";
+      }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function renderSummary() {
+    screen.textContent = "";
+    var heading = el("h2", { tabindex: "-1", text: "回答を確認して、コピーする。" });
+    screen.appendChild(heading);
+    var list = el("dl");
+    QUESTIONS.forEach(function (q, i) {
+      list.appendChild(el("dt", { text: "問い " + (i + 1) + ": " + q.question }));
+      var edit = el("button", { type: "button", text: "問い " + (i + 1) + " を直す" });
+      edit.addEventListener("click", function () { go(i); });
+      var dd = el("dd", {}, [el("div", { text: answerText(i) })]);
+      if (answers[i].memo.trim()) dd.appendChild(el("div", { text: "補足: " + answers[i].memo.trim() }));
+      dd.appendChild(edit);
+      list.appendChild(dd);
+    });
+    screen.appendChild(list);
+
+    var note = el("p", { class: "done-note", role: "status" });
+    var button = el("button", { type: "button", class: "primary", text: "回答をコピー" });
+    button.addEventListener("click", function () { copy(summaryText(), note); });
+    screen.appendChild(el("div", { class: "actions" }, [button]));
+    screen.appendChild(note);
+    var raw = el("textarea", { id: "raw", readonly: "", "aria-label": "回答の文字" });
+    raw.value = summaryText();
+    raw.hidden = true;
+    screen.appendChild(raw);
+    screen.appendChild(labelled("次の一手", "「回答をコピー」を押し、コピーした回答を会話に貼り付けて送る。"));
+    heading.focus();
+  }
+
+  function go(to) {
+    index = Math.max(0, Math.min(QUESTIONS.length, to));
+    renderProgress();
+    if (index >= QUESTIONS.length) renderSummary();
+    else renderQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById("title").textContent = TITLE;
+  document.title = TITLE;
+  go(0);
+})();
+</script>
+</body>
+</html>
