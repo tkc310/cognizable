@@ -1,5 +1,10 @@
 # 変更履歴
 
+## 0.3.1 (2026-11-28)
+
+- SKILL.md と README から「出典」の節を消した。
+- 同梱しているライセンス文のファイル名を `skills/cognizable/THIRD_PARTY_LICENSE` に変えた。
+
 ## 0.3.0 (2026-11-28)
 
 - スキルの名前を sharpen から cognizable に変えた。リポジトリの名前に合わせた。

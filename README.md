@@ -67,7 +67,3 @@ python3 -m unittest discover -s tests -v
 - フィードバックログの各記録に必要な項目があり、指しているルール ID が実在するか
 - SKILL.md が指す別ファイルとひな形が実在するか
 - HTML の成果物が、デザイン規則と4層の構造を満たすか（行長、行の高さ、意味を持つ色の数、動き、L0 と L1 の項目数、地図に戻るリンクなど）
-
-## 出典
-
-ルールの構成は [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)（MIT License）を元にしている。ライセンス本文は [`skills/cognizable/LICENSE.i-have-adhd`](skills/cognizable/LICENSE.i-have-adhd) にある。
