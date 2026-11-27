@@ -1,4 +1,4 @@
-"""sharpen スキル、フィードバックログ、HTML の成果物の形式を検査する。
+"""cognizable スキル、フィードバックログ、HTML の成果物の形式を検査する。
 
 使い方:
   python3 scripts/check.py              スキル、ログ、ひな形を検査する
@@ -16,7 +16,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SKILL_PATH = ROOT / "skills" / "sharpen" / "SKILL.md"
+SKILL_PATH = ROOT / "skills" / "cognizable" / "SKILL.md"
 LOG_PATH = ROOT / "feedback" / "log.md"
 SKILL_DIR = SKILL_PATH.parent
 TEMPLATE_PATH = SKILL_DIR / "assets" / "template.html"
@@ -84,7 +84,7 @@ def rule_sections(text: str) -> list[tuple[str, str]]:
     return sections
 
 
-def check_skill(text: str, dir_name: str = "sharpen") -> tuple[list[str], set[str]]:
+def check_skill(text: str, dir_name: str = "cognizable") -> tuple[list[str], set[str]]:
     """SKILL.md を検査し、(問題の一覧, ルール ID の集合) を返す。"""
     problems: list[str] = []
 
@@ -163,7 +163,7 @@ def check_references(skill_text: str, skill_dir: Path = SKILL_DIR) -> list[str]:
     problems: list[str] = []
     for rel in REFERENCES:
         if not (skill_dir / rel).is_file():
-            problems.append(f"skills/sharpen/{rel}: ファイルがない")
+            problems.append(f"skills/cognizable/{rel}: ファイルがない")
         if rel not in skill_text:
             problems.append(f"SKILL.md: {rel} への参照がない")
     return problems
