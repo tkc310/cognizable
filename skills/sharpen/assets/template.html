@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>資料の名前</title>
+<!--
+  sharpen の成果物のひな形。規則は references/design.md の D1〜D13。
+  使い方: CSS と script は変えない。body の中の文と数だけを入れ替える。
+  層: data-layer="0" は1画面の要約。"1" はブロックの概要。"2" は詳細。"3" は原典。
+-->
+<style>
+:root {
+  /* D1: 行長。D2: 文字と行間 */
+  --measure: 36em;
+  --leading: 1.75;
+  --size: 17px;
+  /* D4: 本文のコントラストは 7:1 以上 */
+  --bg: #fafaf7;
+  --surface: #f0efea;
+  --text: #1f1f1f;
+  --line: #6b6b66;
+  /* D5: 意味を持つ色は4色まで */
+  --sem-now: #1d4ed8;
+  --sem-act: #0f766e;
+  --sem-warn: #b45309;
+  --sem-ok: #4d7c0f;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181c;
+    --surface: #23262c;
+    --text: #ececea;
+    --line: #9a9a94;
+    --sem-now: #8ab4f8;
+    --sem-act: #5eead4;
+    --sem-warn: #fbbf24;
+    --sem-ok: #a3e635;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16181c;
+  --surface: #23262c;
+  --text: #ececea;
+  --line: #9a9a94;
+  --sem-now: #8ab4f8;
+  --sem-act: #5eead4;
+  --sem-warn: #fbbf24;
+  --sem-ok: #a3e635;
+  color-scheme: dark;
+}
+:root[data-size="large"] { --size: 20px; }
+
+* { box-sizing: border-box; }
+html { font-size: var(--size); scroll-padding-top: 1rem; }
+body {
+  margin: 0;
+  padding: 0 16px 4rem;
+  background: var(--bg);
+  color: var(--text);
+  /* D3: ゴシック体1種と等幅1種 */
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", Meiryo, sans-serif;
+  line-height: var(--leading);
+  text-align: start;
+}
+code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.92em; }
+code { background: var(--surface); padding: 0.1em 0.3em; border-radius: 4px; }
+pre { background: var(--surface); padding: 0.8rem 1rem; border-radius: 6px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+a { color: var(--text); text-decoration-thickness: 2px; text-underline-offset: 0.2em; text-decoration-color: var(--sem-act); }
+:focus-visible { outline: 3px solid var(--sem-now); outline-offset: 2px; }
+
+/* D8: 本文は1カラム。横に置くのは目次だけ */
+/* 狭い画面では、要約を先に見せるため、目次と設定を本文の後ろに回す */
+.page { max-width: calc(var(--measure) + 15rem); margin: 0 auto; display: flex; flex-direction: column; }
+main { max-width: var(--measure); min-width: 0; }
+.toc { order: 2; }
+@media (min-width: 60rem) {
+  .page { display: grid; grid-template-columns: 13rem minmax(0, 1fr); column-gap: 2rem; align-items: start; }
+  .toc { order: 0; position: sticky; top: 1rem; }
+}
+
+h1 { font-size: 1.6rem; line-height: 1.4; margin: 2rem 0 0.5rem; }
+h2 { font-size: 1.3rem; line-height: 1.5; margin: 0 0 0.75rem; }
+h3 { font-size: 1.05rem; line-height: 1.5; margin: 1.5rem 0 0.5rem; }
+p { margin: 0 0 1em; }
+ul, ol { margin: 0 0 1em; padding-left: 1.5em; }
+li + li { margin-top: 0.4em; }
+section { margin-top: 3rem; }
+
+.where { margin: 0 0 0.25rem; font-size: 0.85rem; font-weight: 700; }
+.back { font-size: 0.9rem; }
+
+/* L0: 常に表示する */
+.lead { font-size: 1.1rem; font-weight: 700; }
+.next {
+  border-left: 6px solid var(--sem-act);
+  background: var(--surface);
+  padding: 0.75rem 1rem;
+  border-radius: 0 6px 6px 0;
+}
+.label { font-weight: 700; margin-right: 0.5em; }
+.warn { border-left: 6px solid var(--sem-warn); background: var(--surface); padding: 0.75rem 1rem; border-radius: 0 6px 6px 0; }
+
+/* D12: 地図は3〜4ブロック。流れは一方向 */
+.map { list-style: none; margin: 0 0 0.5rem; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.map li { margin: 0; }
+.map li + li::before { content: "↓"; display: block; text-align: center; font-weight: 700; line-height: 1.6; }
+.map a {
+  display: block;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  text-decoration: none;
+  background: var(--bg);
+}
+.map .n { display: block; font-size: 0.8rem; font-weight: 700; }
+.map .t { display: block; font-weight: 700; line-height: 1.5; }
+.map .m { display: block; font-size: 0.85rem; }
+figure { margin: 0 0 1.5em; }
+figcaption { font-size: 0.9rem; margin-top: 0.4rem; }
+
+dl.terms { margin: 0 0 1em; }
+dl.terms dt { font-weight: 700; }
+dl.terms dd { margin: 0 0 0.6em; }
+
+/* 表は本文の幅を超えてよい */
+.table-wrap { overflow-x: auto; margin: 0 0 1em; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { border: 1px solid var(--line); padding: 0.45rem 0.6rem; text-align: start; vertical-align: top; }
+th { background: var(--surface); }
+
+/* D10: 折りたたむのは L2 と L3 だけ */
+details { border: 2px solid var(--line); border-radius: 8px; margin: 0 0 0.75rem; background: var(--bg); }
+summary { cursor: pointer; padding: 0.6rem 0.8rem; font-weight: 700; }
+details[open] > summary { border-bottom: 1px solid var(--line); }
+.inner { padding: 0.8rem; }
+.inner > :last-child { margin-bottom: 0; }
+
+/* D9: 現在地を常に表示する */
+.toc { font-size: 0.9rem; padding-top: 2rem; }
+.toc h2 { font-size: 0.9rem; margin: 0 0 0.5rem; }
+.toc ol { list-style: none; margin: 0; padding: 0; }
+.toc li { margin: 0; }
+.toc a { display: block; padding: 0.35rem 0.5rem; border-left: 4px solid transparent; text-decoration: none; line-height: 1.5; }
+.toc a[aria-current="true"] { border-left-color: var(--sem-now); background: var(--surface); font-weight: 700; }
+.toc a[aria-current="true"]::after { content: "（現在地）"; font-size: 0.8rem; }
+
+/* D13: 設定は4つまで */
+.controls { margin-top: 1.5rem; display: grid; gap: 0.5rem; }
+.controls label { display: grid; gap: 0.15rem; font-size: 0.8rem; font-weight: 700; }
+.controls select, .controls button {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  padding: 0.3rem 0.4rem;
+}
+.controls button { cursor: pointer; border-color: var(--sem-act); }
+
+/* D7: 動きは操作への応答だけ。指定があれば止める */
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion="off"]) { scroll-behavior: smooth; }
+}
+
+@media print {
+  .toc { display: none; }
+  details { border: 0; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<nav class="toc" aria-label="目次">
+  <h2>目次</h2>
+  <ol>
+    <li><a href="#map">要約と地図</a></li>
+    <li><a href="#b1">1. ブロック1の主張</a></li>
+    <li><a href="#b2">2. ブロック2の主張</a></li>
+    <li><a href="#b3">3. ブロック3の主張</a></li>
+    <li><a href="#sources">原典</a></li>
+  </ol>
+
+  <div class="controls">
+    <button type="button" id="expand-all">詳細をすべて開く</button>
+    <button type="button" id="collapse-all">詳細をすべて閉じる</button>
+    <label>テーマ
+      <select id="set-theme">
+        <option value="auto">自動</option>
+        <option value="light">ライト</option>
+        <option value="dark">ダーク</option>
+      </select>
+    </label>
+    <label>密度
+      <select id="set-density">
+        <option value="standard">標準（詳細を閉じる）</option>
+        <option value="detailed">詳細（詳細を開く）</option>
+      </select>
+    </label>
+    <label>文字サイズ
+      <select id="set-size">
+        <option value="standard">標準</option>
+        <option value="large">大</option>
+      </select>
+    </label>
+    <label>動き
+      <select id="set-motion">
+        <option value="on">あり</option>
+        <option value="off">なし</option>
+      </select>
+    </label>
+  </div>
+</nav>
+
+<main>
+
+<!-- L0: 1画面の要約。折りたたまない -->
+<section id="map" data-layer="0">
+  <h1>資料の名前</h1>
+  <p>全3ブロック。読むのに約6分。</p>
+
+  <p class="lead">結論を1〜2文で書く。資料全体が何を言っているかを書く。</p>
+
+  <p class="next"><span class="label">次の一手</span>読み手が次にする行動を1つだけ書く。</p>
+
+  <h3>全体の地図</h3>
+  <figure>
+    <ol class="map">
+      <li><a href="#b1"><span class="n">1</span><span class="t">ブロック1の主張</span><span class="m">約2分</span></a></li>
+      <li><a href="#b2"><span class="n">2</span><span class="t">ブロック2の主張</span><span class="m">約2分</span></a></li>
+      <li><a href="#b3"><span class="n">3</span><span class="t">ブロック3の主張</span><span class="m">約2分</span></a></li>
+    </ol>
+    <figcaption>地図が示す主張を1文で書く。例: 1で決めた方針が、2と3の前提になる。</figcaption>
+  </figure>
+
+  <h3>主要な用語</h3>
+  <dl class="terms">
+    <dt>用語1</dt><dd>1行の定義。</dd>
+    <dt>用語2</dt><dd>1行の定義。</dd>
+    <dt>用語3</dt><dd>1行の定義。</dd>
+  </dl>
+</section>
+
+<!-- L1: ブロックの概要。3〜4個。常に表示する -->
+<section id="b1" data-layer="1">
+  <p class="where">全3ブロック中の1　<a class="back" href="#map">地図に戻る</a></p>
+  <h2>ブロック1の主張を、文で書く</h2>
+  <ul>
+    <li>論点1。</li>
+    <li>そのため、論点2。</li>
+    <li>ただし、論点3。</li>
+  </ul>
+
+  <!-- L2: 詳細。1つの折りたたみに1種類だけ入れる -->
+  <details data-layer="2">
+    <summary>手順: 何をするか（3手順、約5分）</summary>
+    <div class="inner">
+      <ol>
+        <li>1つ目の動作。</li>
+        <li>2つ目の動作。</li>
+        <li>3つ目の動作。</li>
+      </ol>
+    </div>
+  </details>
+  <details data-layer="2">
+    <summary>一覧: 何の一覧か（2項目）</summary>
+    <div class="inner">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>名前</th><th>値</th><th>意味</th></tr></thead>
+          <tbody>
+            <tr><td><code>name_a</code></td><td>60</td><td>1行の説明。</td></tr>
+            <tr><td><code>name_b</code></td><td>300</td><td>1行の説明。</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </details>
+  <details data-layer="2">
+    <summary>解説: なぜそうなるか（約1分）</summary>
+    <div class="inner">
+      <p>解説は短い段落で書く。1段落は3文まで。接続語で因果を示す。</p>
+    </div>
+  </details>
+</section>
+
+<section id="b2" data-layer="1">
+  <p class="where">全3ブロック中の2　<a class="back" href="#map">地図に戻る</a></p>
+  <h2>ブロック2の主張を、文で書く</h2>
+  <p>おすすめを1行で先に書く。</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>選択肢</th><th>観点1</th><th>観点2</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>値</td><td>値</td></tr>
+        <tr><td>B</td><td>値</td><td>値</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="warn"><span class="label">注意</span>取り消せない操作や例外があれば、枠で書く。なければ枠ごと消す。</p>
+  <details data-layer="2">
+    <summary>解説: 比較の根拠（約1分）</summary>
+    <div class="inner">
+      <p>解説は短い段落で書く。</p>
+    </div>
+  </details>
+</section>
+
+<section id="b3" data-layer="1">
+  <p class="where">全3ブロック中の3　<a class="back" href="#map">地図に戻る</a></p>
+  <h2>ブロック3の主張を、文で書く</h2>
+  <ul>
+    <li>論点1。</li>
+    <li>なぜなら、論点2。</li>
+  </ul>
+  <details data-layer="2">
+    <summary>手順: 何をするか（2手順、約3分）</summary>
+    <div class="inner">
+      <ol>
+        <li>1つ目の動作。</li>
+        <li>2つ目の動作。</li>
+      </ol>
+    </div>
+  </details>
+</section>
+
+<!-- L3: 原典。本文を写さず、リンクだけ置く -->
+<section id="sources">
+  <p class="where"><a class="back" href="#map">地図に戻る</a></p>
+  <h2>原典</h2>
+  <details data-layer="3">
+    <summary>元の資料へのリンク（3件）</summary>
+    <div class="inner">
+      <ul>
+        <li><a href="#">リンク先に何があるかを書く</a></li>
+        <li><a href="#">リンク先に何があるかを書く</a></li>
+        <li><a href="#">リンク先に何があるかを書く</a></li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+</main>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var details = Array.prototype.slice.call(document.querySelectorAll("details"));
+  var KEY = "sharpen-settings";
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
+  }
+  function save(s) {
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* 保存できなくても表示は続ける */ }
+  }
+  function setOpen(open, layer) {
+    details.forEach(function (d) {
+      if (!layer || d.getAttribute("data-layer") === layer) { d.open = open; }
+    });
+  }
+  function apply(s) {
+    if (s.theme === "light" || s.theme === "dark") { root.setAttribute("data-theme", s.theme); }
+    else { root.removeAttribute("data-theme"); }
+    if (s.size === "large") { root.setAttribute("data-size", "large"); }
+    else { root.removeAttribute("data-size"); }
+    if (s.motion === "off") { root.setAttribute("data-motion", "off"); }
+    else { root.removeAttribute("data-motion"); }
+  }
+
+  var settings = load();
+  apply(settings);
+  if (settings.density === "detailed") { setOpen(true, "2"); }
+
+  [["set-theme", "theme"], ["set-density", "density"], ["set-size", "size"], ["set-motion", "motion"]].forEach(function (pair) {
+    var el = document.getElementById(pair[0]);
+    if (!el) { return; }
+    if (settings[pair[1]]) { el.value = settings[pair[1]]; }
+    el.addEventListener("change", function () {
+      settings[pair[1]] = el.value;
+      save(settings);
+      apply(settings);
+      if (pair[1] === "density") { setOpen(el.value === "detailed", "2"); }
+    });
+  });
+
+  document.getElementById("expand-all").addEventListener("click", function () { setOpen(true); });
+  document.getElementById("collapse-all").addEventListener("click", function () { setOpen(false); });
+
+  // 目次の中で、今読んでいる節を強調する
+  var links = Array.prototype.slice.call(document.querySelectorAll(".toc a[href^='#']"));
+  var targets = links.map(function (a) { return document.getElementById(a.getAttribute("href").slice(1)); });
+  function mark() {
+    var current = 0;
+    targets.forEach(function (t, i) {
+      if (t && t.getBoundingClientRect().top <= window.innerHeight * 0.3) { current = i; }
+    });
+    links.forEach(function (a, i) {
+      if (i === current) { a.setAttribute("aria-current", "true"); }
+      else { a.removeAttribute("aria-current"); }
+    });
+  }
+  window.addEventListener("scroll", mark, { passive: true });
+  window.addEventListener("resize", mark);
+  mark();
+
+  // 目次やリンクから折りたたみの中へ飛んだとき、折りたたみを開く
+  window.addEventListener("hashchange", function () {
+    var t = document.getElementById(location.hash.slice(1));
+    while (t) {
+      if (t.tagName === "DETAILS") { t.open = true; }
+      t = t.parentElement;
+    }
+  });
+})();
+</script>
+</body>
+</html>
