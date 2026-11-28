@@ -74,6 +74,44 @@ AI と開発するときに、読み手が計画、設計、知識、変更を�
 - PreToolUse は Bash によるファイルの変更を止めない。質問の印は、次の依頼で消える。
 - Stop が答え直させるのは1回だけ。答え直しの後にもう一度止めると終わらなくなるため。
 
+## Codex と Cursor で使う
+
+スキルとフックの本体は `~/.claude/skills/` の1か所に置き、Codex と Cursor からはシンボリックリンクか設定の取り込みで参照する。ファイルを複製しない。
+
+| 対象 | スキル | フック |
+|------|--------|--------|
+| Cursor | `~/.claude/skills/` をそのまま読む。設定は要らない | `~/.claude/settings.json` のフックをそのまま読む。設定は要らない |
+| Codex | `~/.agents/skills/` に、5つのスキルのシンボリックリンクを置く | `~/.codex/hooks.json` に、登録の例へのシンボリックリンクを置く |
+
+Cursor は、Cursor Settings の Agents にある Third-Party Imports が有効なとき（初期値は有効）に、Claude Code のスキルとフックを読む。
+
+Codex の手順:
+
+1. スキルのリンクを置く。
+
+   ```sh
+   mkdir -p ~/.agents/skills
+   for s in cognizable cog-plan cog-ask cog-learn cog-review; do ln -s ~/.claude/skills/$s ~/.agents/skills/$s; done
+   ```
+
+2. フックのリンクを置く。`~/.codex/hooks.json` が既にあるときは、リンクを置かずに、登録の例の `hooks` を手で足す。
+
+   ```sh
+   ln -s ~/.claude/skills/cognizable/hooks/settings.example.json ~/.codex/hooks.json
+   ```
+
+3. Codex で `/hooks` を開き、3つのフックを信頼する。Codex は、信頼されていないフックを実行しない。
+
+各スキルの `agents/openai.yaml` は、Codex がスキルを勝手に呼ばないための設定。Claude Code と Cursor の `disable-model-invocation: true` と同じ役割を持つ。
+
+ツールによって、フックで効く範囲が違う。
+
+| フック | Claude Code | Codex | Cursor |
+|--------|-------------|-------|--------|
+| cognizable の適用と日本語の指示 | 効く | 効く | 効かない。Cursor の依頼前のフックは、指示を足せない |
+| 質問の間はファイルを変更しない | 効く | 効く（`apply_patch` を止める） | ファイルの変更は止まる。質問だという指示は届かない |
+| 英文が3行以上なら答え直す | 効く | 効く | 効く |
+
 ## 育て方
 
 読みにくい出力に出会ったら「読みにくい」と伝える。cognizable が書き直し、記録を1件出す。記録は [`feedback/log.md`](feedback/log.md) にためる。見直しと反映の手順は [`docs/growth.md`](docs/growth.md) にある。

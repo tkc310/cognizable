@@ -49,8 +49,14 @@ class FlagTest(unittest.TestCase):
         self.assertIn("質問", context)
         self.assertEqual(self.edit()["hookSpecificOutput"]["permissionDecision"], "deny")
         self.assertIsNone(self.edit("Read"))
+        self.assertEqual(self.edit("apply_patch")["hookSpecificOutput"]["permissionDecision"], "deny")
         self.submit("では修正して")
         self.assertIsNone(self.edit())
+
+    def test_cursor_conversation_id(self):
+        hook.on_user_prompt_submit({"conversation_id": "c", "prompt": "説明して"})
+        result = hook.on_pre_tool_use({"conversation_id": "c", "tool_name": "Write"})
+        self.assertEqual(result["hookSpecificOutput"]["permissionDecision"], "deny")
 
 
 class EnglishTest(unittest.TestCase):
@@ -72,6 +78,7 @@ class EnglishTest(unittest.TestCase):
         result = hook.on_stop({"last_assistant_message": text})
         self.assertEqual(result["decision"], "block")
         self.assertIsNone(hook.on_stop({"last_assistant_message": text, "stop_hook_active": True}))
+        self.assertIsNone(hook.on_stop({"last_assistant_message": text, "loop_count": 1}))
         self.assertIsNone(hook.on_stop({"last_assistant_message": "日本語だけの回答。"}))
 
     def test_reads_last_reply_from_transcript(self):

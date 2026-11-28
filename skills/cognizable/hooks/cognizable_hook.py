@@ -66,7 +66,8 @@ CHANGE_PATTERNS = (
 )
 
 # 質問の間に止めるツール。
-EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
+# apply_patch は Codex のファイル編集。Cursor は Claude Code の Edit を Write として渡す。
+EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch")
 
 JAPANESE_CHAR = re.compile(r"[぀-ヿ㐀-鿿ｦ-ﾟ]")
 ENGLISH_WORD = re.compile(r"[A-Za-z][A-Za-z'’-]+")
@@ -92,6 +93,11 @@ def state_dir() -> Path:
     return Path(base)
 
 
+def session_key(data: dict) -> str:
+    """会話を見分ける値を返す。Cursor は session_id の代わりに conversation_id を渡す。"""
+    return str(data.get("session_id") or data.get("conversation_id") or "")
+
+
 def flag_path(session_id: str) -> Path:
     safe = re.sub(r"[^A-Za-z0-9_.-]", "_", session_id or "default")
     return state_dir() / f"{safe}.question"
@@ -113,7 +119,7 @@ def build_context(question: bool) -> str:
 
 def on_user_prompt_submit(data: dict) -> dict:
     question = is_question(str(data.get("prompt", "")))
-    flag = flag_path(str(data.get("session_id", "")))
+    flag = flag_path(session_key(data))
     try:
         if question:
             flag.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +139,7 @@ def on_user_prompt_submit(data: dict) -> dict:
 def on_pre_tool_use(data: dict) -> dict | None:
     if data.get("tool_name") not in EDIT_TOOLS:
         return None
-    if not flag_path(str(data.get("session_id", ""))).exists():
+    if not flag_path(session_key(data)).exists():
         return None
     return {
         "hookSpecificOutput": {
@@ -215,7 +221,8 @@ def last_reply_text(transcript_path: str) -> str:
 
 def on_stop(data: dict) -> dict | None:
     # 答え直しの後にもう一度止めると、終わらなくなる。1回だけ止める。
-    if data.get("stop_hook_active"):
+    # Cursor は stop_hook_active の代わりに loop_count を渡す。
+    if data.get("stop_hook_active") or (data.get("loop_count") or 0) > 0:
         return None
     text = data.get("last_assistant_message")
     if not isinstance(text, str):
