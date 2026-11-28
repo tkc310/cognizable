@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""cognizable の Claude Code フック。
+"""cognizable のフック。Claude Code、Codex、Cursor、Gemini CLI、Antigravity CLI で使う。
 
-1つのスクリプトで3つのイベントを扱う。イベントは標準入力の JSON の
-hook_event_name で見分ける。
+1つのスクリプトで3つの働きを扱う。Claude Code、Codex、Cursor、Gemini CLI では、
+イベントを標準入力の JSON の hook_event_name で見分ける。Antigravity CLI は
+イベント名を渡さないため、引数で `antigravity:イベント名` を渡す。
+
+Claude Code のイベント名で書く。他のツールの対応するイベントは HANDLERS にある。
 
 - UserPromptSubmit: 応答に cognizable を適用し、日本語で答える指示を足す。
   依頼が質問なら、ファイルを変更せずに答えだけ返す指示も足し、印を残す。
@@ -66,8 +69,19 @@ CHANGE_PATTERNS = (
 )
 
 # 質問の間に止めるツール。
-# apply_patch は Codex のファイル編集。Cursor は Claude Code の Edit を Write として渡す。
-EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch")
+# apply_patch は Codex、write_file と replace は Gemini CLI、*_file_content と
+# write_to_file は Antigravity CLI のファイル編集。Cursor は Edit を Write として渡す。
+EDIT_TOOLS = (
+    "Edit", "Write", "MultiEdit", "NotebookEdit",
+    "apply_patch",
+    "write_file", "replace",
+    "write_to_file", "replace_file_content", "multi_replace_file_content",
+)
+
+DENY_REASON = (
+    "[cognizable フック] この依頼は質問なので、ファイルを変更しない。"
+    "回答だけを返す。変更が必要なら、案を回答に書いて読み手の依頼を待つ。"
+)
 
 JAPANESE_CHAR = re.compile(r"[぀-ヿ㐀-鿿ｦ-ﾟ]")
 ENGLISH_WORD = re.compile(r"[A-Za-z][A-Za-z'’-]+")
@@ -94,8 +108,10 @@ def state_dir() -> Path:
 
 
 def session_key(data: dict) -> str:
-    """会話を見分ける値を返す。Cursor は session_id の代わりに conversation_id を渡す。"""
-    return str(data.get("session_id") or data.get("conversation_id") or "")
+    """会話を見分ける値を返す。Cursor と Antigravity CLI は session_id を渡さない。"""
+    return str(
+        data.get("session_id") or data.get("conversation_id") or data.get("conversationId") or ""
+    )
 
 
 def flag_path(session_id: str) -> Path:
@@ -117,9 +133,10 @@ def build_context(question: bool) -> str:
     return "\n".join(lines)
 
 
-def on_user_prompt_submit(data: dict) -> dict:
-    question = is_question(str(data.get("prompt", "")))
-    flag = flag_path(session_key(data))
+def record_prompt(key: str, prompt: str) -> bool:
+    """依頼が質問かを判定し、質問なら印を残す。質問でなければ印を消す。"""
+    question = is_question(prompt)
+    flag = flag_path(key)
     try:
         if question:
             flag.parent.mkdir(parents=True, exist_ok=True)
@@ -128,6 +145,16 @@ def on_user_prompt_submit(data: dict) -> dict:
             flag.unlink()
     except OSError:
         pass
+    return question
+
+
+def edit_blocked(key: str, tool_name: object) -> bool:
+    """質問の印が残っている間の、ファイルを変更するツールかを返す。"""
+    return tool_name in EDIT_TOOLS and flag_path(key).exists()
+
+
+def on_user_prompt_submit(data: dict) -> dict:
+    question = record_prompt(session_key(data), str(data.get("prompt", "")))
     return {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",
@@ -137,18 +164,13 @@ def on_user_prompt_submit(data: dict) -> dict:
 
 
 def on_pre_tool_use(data: dict) -> dict | None:
-    if data.get("tool_name") not in EDIT_TOOLS:
-        return None
-    if not flag_path(session_key(data)).exists():
+    if not edit_blocked(session_key(data), data.get("tool_name")):
         return None
     return {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",
-            "permissionDecisionReason": (
-                "[cognizable フック] この依頼は質問なので、ファイルを変更しない。"
-                "回答だけを返す。変更が必要なら、案を回答に書いて読み手の依頼を待つ。"
-            ),
+            "permissionDecisionReason": DENY_REASON,
         }
     }
 
@@ -227,22 +249,148 @@ def on_stop(data: dict) -> dict | None:
     text = data.get("last_assistant_message")
     if not isinstance(text, str):
         text = last_reply_text(str(data.get("transcript_path", "")))
+    reason = retry_reason(text)
+    return None if reason is None else {"decision": "block", "reason": reason}
+
+
+def retry_reason(text: str) -> str | None:
+    """英文が上限を超えていれば答え直しの理由を、超えていなければ None を返す。"""
     lines = count_english_lines(text)
     if lines < ENGLISH_LINE_LIMIT:
         return None
+    return (
+        f"[cognizable フック] 回答に英文の行が {lines} 行ある（上限は {ENGLISH_LINE_LIMIT - 1} 行）。"
+        "地の文を日本語に直して、回答を書き直す。コード、コマンド、識別子はそのままでよい。"
+    )
+
+
+# --- Gemini CLI: BeforeAgent、BeforeTool、AfterAgent ---
+
+
+def on_gemini_before_agent(data: dict) -> dict:
+    question = record_prompt(session_key(data), str(data.get("prompt", "")))
     return {
-        "decision": "block",
-        "reason": (
-            f"[cognizable フック] 回答に英文の行が {lines} 行ある（上限は {ENGLISH_LINE_LIMIT - 1} 行）。"
-            "地の文を日本語に直して、回答を書き直す。コード、コマンド、識別子はそのままでよい。"
-        ),
+        "hookSpecificOutput": {
+            "hookEventName": "BeforeAgent",
+            "additionalContext": build_context(question),
+        }
     }
 
 
+def on_gemini_before_tool(data: dict) -> dict | None:
+    if not edit_blocked(session_key(data), data.get("tool_name")):
+        return None
+    return {"decision": "deny", "reason": DENY_REASON}
+
+
+def on_gemini_after_agent(data: dict) -> dict | None:
+    if data.get("stop_hook_active"):
+        return None
+    reason = retry_reason(str(data.get("prompt_response") or ""))
+    return None if reason is None else {"decision": "deny", "reason": reason}
+
+
+# --- Antigravity CLI: PreInvocation、PreToolUse、Stop ---
+# イベント名が入力にないため、hooks.json で `antigravity:イベント名` を引数に渡す。
+
+# 応答を書いた主体とみなす、transcript の type、role、source の値に含まれる語。
+ANTIGRAVITY_REPLY_ROLES = ("model", "assistant", "agent", "planner")
+
+
+def on_antigravity_pre_invocation(data: dict) -> dict | None:
+    # PreInvocation はモデルを呼ぶたびに動く。注入した指示は会話に残るため、
+    # 依頼ごとの最初の呼び出し（invocationNum が 0）でだけ注入する。
+    if (data.get("invocationNum") or 0) != 0:
+        return None
+    question = record_prompt(session_key(data), str(data.get("lastUserInput") or ""))
+    return {"injectSteps": [{"systemMessage": {"systemMessage": build_context(question)}}]}
+
+
+def on_antigravity_pre_tool_use(data: dict) -> dict | None:
+    tool = (data.get("toolCall") or {}).get("name")
+    if not edit_blocked(session_key(data), tool):
+        return None
+    return {"decision": "deny", "reason": DENY_REASON}
+
+
+def _collect_reply_text(entry: object, out: list[str], in_reply: bool = False) -> None:
+    if isinstance(entry, dict):
+        role = " ".join(
+            str(entry.get(k, "")) for k in ("type", "role", "source")
+        ).lower()
+        here = in_reply or (
+            any(r in role for r in ANTIGRAVITY_REPLY_ROLES) and "tool" not in role
+        )
+        for key, value in entry.items():
+            if here and key in ("text", "content", "response") and isinstance(value, str):
+                out.append(value)
+            else:
+                _collect_reply_text(value, out, here)
+    elif isinstance(entry, list):
+        for item in entry:
+            _collect_reply_text(item, out, in_reply)
+
+
+def antigravity_reply_text(transcript_path: str, last_input: str) -> str:
+    """最後の依頼より後の、エージェントの地の文を返す。
+
+    Antigravity CLI は transcript の形式を公開していない。読めない形式なら空文字を返し、
+    答え直しをさせない。
+    """
+    try:
+        raw = Path(transcript_path).read_text(encoding="utf-8")
+    except (OSError, TypeError):
+        return ""
+    texts: list[str] = []
+    for line in raw.splitlines():
+        if last_input and last_input in line:
+            texts = []
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        _collect_reply_text(entry, texts)
+    return "\n".join(texts)
+
+
+def on_antigravity_stop(data: dict) -> dict | None:
+    if not data.get("fullyIdle") or data.get("terminationReason") not in (None, "model_stop"):
+        return None
+    # Antigravity CLI には stop_hook_active に当たる値がない。同じ依頼で答え直させるのは
+    # 1回だけにするため、答え直させた依頼を印として残す。
+    last_input = str(data.get("lastUserInput") or "")
+    mark = flag_path(session_key(data)).with_suffix(".retried")
+    try:
+        if mark.read_text(encoding="utf-8") == last_input:
+            return None
+    except OSError:
+        pass
+    text = antigravity_reply_text(str(data.get("transcriptPath") or ""), last_input)
+    reason = retry_reason(text)
+    if reason is None:
+        return None
+    try:
+        mark.parent.mkdir(parents=True, exist_ok=True)
+        mark.write_text(last_input, encoding="utf-8")
+    except OSError:
+        return None
+    return {"decision": "continue", "reason": reason}
+
+
 HANDLERS = {
+    # Claude Code、Codex、Cursor（Cursor は Claude Code の設定を取り込む）
     "UserPromptSubmit": on_user_prompt_submit,
     "PreToolUse": on_pre_tool_use,
     "Stop": on_stop,
+    # Gemini CLI
+    "BeforeAgent": on_gemini_before_agent,
+    "BeforeTool": on_gemini_before_tool,
+    "AfterAgent": on_gemini_after_agent,
+    # Antigravity CLI（引数で渡す）
+    "antigravity:PreInvocation": on_antigravity_pre_invocation,
+    "antigravity:PreToolUse": on_antigravity_pre_tool_use,
+    "antigravity:Stop": on_antigravity_stop,
 }
 
 
@@ -253,7 +401,8 @@ def main() -> int:
         return 0
     if not isinstance(data, dict):
         return 0
-    handler = HANDLERS.get(str(data.get("hook_event_name", "")))
+    event = sys.argv[1] if len(sys.argv) > 1 else str(data.get("hook_event_name", ""))
+    handler = HANDLERS.get(event)
     if handler is None:
         return 0
     result = handler(data)

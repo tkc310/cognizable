@@ -11,6 +11,7 @@ Claude Code のフック `skills/cognizable/hooks/cognizable_hook.py` を足し�
 - Codex と Cursor で使えるようにした。スキルとフックは複製せず、シンボリックリンクか Cursor の取り込みで参照する。手順は README の「Codex と Cursor で使う」にある。
 - フックが、Codex のファイル編集 `apply_patch`、Cursor の `conversation_id` と `loop_count` を扱うようになった。
 - 各スキルに `agents/openai.yaml` を足した。Codex がスキルを勝手に呼ばないようにする。
+- Gemini CLI と Antigravity CLI で使えるようにした。フックは Gemini CLI の BeforeAgent、BeforeTool、AfterAgent と、Antigravity CLI の PreInvocation、PreToolUse、Stop を扱う。登録の例 `gemini-settings.example.json` と `antigravity-hooks.json` を足した。
 - ルール R1〜R19 とデザイン規則 D1〜D13 は変えていない。
 
 ## 0.5.1 (2026-11-28)

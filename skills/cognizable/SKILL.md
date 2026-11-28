@@ -36,7 +36,7 @@ HTML の成果物は `assets/template.html` を元に作る。
 
 ## フック
 
-`hooks/cognizable_hook.py` を Claude Code のフックに登録すると、`/cognizable` と打たなくても、毎回の応答に cognizable が適用される。フックは次の3つを行う。
+`hooks/cognizable_hook.py` を Claude Code のフックに登録すると（Codex、Cursor、Gemini CLI、Antigravity CLI でも使える）、`/cognizable` と打たなくても、毎回の応答に cognizable が適用される。フックは次の3つを行う。
 
 | イベント | すること |
 |----------|----------|

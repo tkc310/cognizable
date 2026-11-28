@@ -98,5 +98,52 @@ class EnglishTest(unittest.TestCase):
             os.unlink(f.name)
 
 
+class OtherAgentsTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        os.environ["COGNIZABLE_HOOK_STATE_DIR"] = self.tmp.name
+
+    def tearDown(self):
+        del os.environ["COGNIZABLE_HOOK_STATE_DIR"]
+        self.tmp.cleanup()
+
+    ENGLISH = "One English line here.\nTwo English line here.\nThree English line here."
+
+    def test_gemini(self):
+        out = hook.on_gemini_before_agent({"session_id": "g", "prompt": "説明して"})
+        self.assertIn("質問", out["hookSpecificOutput"]["additionalContext"])
+        self.assertEqual(hook.on_gemini_before_tool({"session_id": "g", "tool_name": "write_file"})["decision"], "deny")
+        self.assertEqual(hook.on_gemini_after_agent({"prompt_response": self.ENGLISH})["decision"], "deny")
+        self.assertIsNone(hook.on_gemini_after_agent({"prompt_response": self.ENGLISH, "stop_hook_active": True}))
+
+    def test_antigravity_injects_only_on_first_invocation(self):
+        out = hook.on_antigravity_pre_invocation({"conversationId": "a", "invocationNum": 0, "lastUserInput": "説明して"})
+        self.assertIn("質問", out["injectSteps"][0]["systemMessage"]["systemMessage"])
+        self.assertIsNone(hook.on_antigravity_pre_invocation({"conversationId": "a", "invocationNum": 1}))
+        denied = hook.on_antigravity_pre_tool_use({"conversationId": "a", "toolCall": {"name": "replace_file_content"}})
+        self.assertEqual(denied["decision"], "deny")
+
+    def test_antigravity_stop_retries_once_per_input(self):
+        entries = [
+            {"role": "user", "content": "質問です"},
+            {"role": "tool", "content": self.ENGLISH},
+            {"role": "model", "content": self.ENGLISH},
+        ]
+        with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False, encoding="utf-8") as f:
+            f.write("\n".join(json.dumps(e, ensure_ascii=False) for e in entries))
+        data = {"conversationId": "a", "fullyIdle": True, "terminationReason": "model_stop",
+                "lastUserInput": "質問です", "transcriptPath": f.name}
+        try:
+            self.assertEqual(hook.antigravity_reply_text(f.name, "質問です"), self.ENGLISH)
+            self.assertEqual(hook.on_antigravity_stop(data)["decision"], "continue")
+            self.assertIsNone(hook.on_antigravity_stop(data))
+        finally:
+            os.unlink(f.name)
+
+    def test_unknown_transcript_does_nothing(self):
+        data = {"conversationId": "b", "fullyIdle": True, "lastUserInput": "x", "transcriptPath": "/nonexistent"}
+        self.assertIsNone(hook.on_antigravity_stop(data))
+
+
 if __name__ == "__main__":
     unittest.main()
