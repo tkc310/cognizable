@@ -12,6 +12,7 @@ cognizable は、使って合わなかった出力を記録し、記録がたま
 | [`skills/cognizable/references/code.md`](../skills/cognizable/references/code.md) | ソースコードを変換する手順 |
 | [`docs/research/evidence.md`](research/evidence.md) | ルールと規則ごとの根拠と、証拠の強さ |
 | [`docs/persona.md`](persona.md) | cognizable が想定する読み手像 |
+| [`docs/trials/`](trials/) | スキルを実際の題材で試したときに、エージェントが気づいた点の記録 |
 
 ## 1. 記録する
 

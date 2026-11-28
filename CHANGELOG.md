@@ -1,5 +1,19 @@
 # 変更履歴
 
+## 0.6.0 (2026-11-28)
+
+Claude Code のフック `skills/cognizable/hooks/cognizable_hook.py` を足した。登録すると、エージェントの回答が毎回 cognizable を経由する。
+
+- UserPromptSubmit: 毎回の依頼に、cognizable を適用し、自然言語を日本語で書く指示を足す。
+- UserPromptSubmit と PreToolUse: 「説明して」「質問です」などの質問では、ファイルを変更せずに回答だけ返す。質問の間は Edit、Write、MultiEdit、NotebookEdit を止める。
+- Stop: 回答に英文の行が3行以上あれば、日本語に直して答え直させる。
+- 登録の例 `skills/cognizable/hooks/settings.example.json` と、テスト `tests/test_hook.py` を足した。
+- Codex と Cursor で使えるようにした。スキルとフックは複製せず、シンボリックリンクか Cursor の取り込みで参照する。手順は README の「Codex と Cursor で使う」にある。
+- フックが、Codex のファイル編集 `apply_patch`、Cursor の `conversation_id` と `loop_count` を扱うようになった。
+- 各スキルに `agents/openai.yaml` を足した。Codex がスキルを勝手に呼ばないようにする。
+- Gemini CLI と Antigravity CLI で使えるようにした。フックは Gemini CLI の BeforeAgent、BeforeTool、AfterAgent と、Antigravity CLI の PreInvocation、PreToolUse、Stop を扱う。登録の例 `gemini-settings.example.json` と `antigravity-hooks.json` を足した。
+- ルール R1〜R19 とデザイン規則 D1〜D13 は変えていない。
+
 ## 0.5.1 (2026-11-28)
 
 - 読み手の記述を、認知特性の語（ワーキングメモリ、言語理解、注意の持続など）にそろえた。

@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "BeforeAgent": [
+      {
+        "hooks": [
+          { "name": "cognizable", "type": "command", "command": "python3 ~/.claude/skills/cognizable/hooks/cognizable_hook.py", "timeout": 10000 }
+        ]
+      }
+    ],
+    "BeforeTool": [
+      {
+        "matcher": "write_file|replace",
+        "hooks": [
+          { "name": "cognizable-question", "type": "command", "command": "python3 ~/.claude/skills/cognizable/hooks/cognizable_hook.py", "timeout": 10000 }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "hooks": [
+          { "name": "cognizable-japanese", "type": "command", "command": "python3 ~/.claude/skills/cognizable/hooks/cognizable_hook.py", "timeout": 10000 }
+        ]
+      }
+    ]
+  }
+}

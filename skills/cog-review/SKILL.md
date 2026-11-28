@@ -3,7 +3,7 @@ name: cog-review
 description: '変更の差分を、読み手が理解しやすい順番に並べ直して案内する。入口からドメインの方向へ3〜4ステップに束ね、ステップごとに何がなぜ変わったかと確認点を付ける。気づいた問題は最後に別件としてまとめる。/cog-review 対象 で使う。出力には cognizable を適用する。'
 disable-model-invocation: true
 metadata:
-  version: "0.5.1"
+  version: "0.6.0"
   tags: "Working Memory, Comprehension, Japanese"
 ---
 
