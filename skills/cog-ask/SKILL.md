@@ -3,7 +3,7 @@ name: cog-ask
 description: '設計を決定の木として扱い、読み手が決める問いを1回に1問ずつ出す。問いごとに背景、4つまでの選択肢、推奨、推奨の理由を付ける。調べれば分かる事実は自分で調べる。/cog-ask 設計したい内容 で使う。頼まれたときは1画面1問のHTMLにする。出力には cognizable を適用する。'
 disable-model-invocation: true
 metadata:
-  version: "0.5.1"
+  version: "0.6.0"
   tags: "Working Memory, Comprehension, Japanese"
 ---
 

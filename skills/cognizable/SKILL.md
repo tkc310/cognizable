@@ -3,7 +3,7 @@ name: cognizable
 description: 'ワーキングメモリが小さく言語理解が高い読み手に合わせて出力を整形する。結論と次の行動を先頭に置き、手順を番号で区切り、指示語で前を読み返させず、状態を毎回書き直す。/cognizable で開始し、「cognizable 終了」まで続ける。/cognizable doc で資料やソースコードを4層の成果物に変換する。/cognizable design でデザインを整える。'
 disable-model-invocation: true
 metadata:
-  version: "0.5.1"
+  version: "0.6.0"
   tags: "Working Memory, Output Style, Japanese, Formatting, Document Design"
 ---
 
@@ -33,6 +33,18 @@ cognizable には3つのモードがある。モードごとの詳細は別フ�
 HTML の成果物は `assets/template.html` を元に作る。
 
 `/cognizable doc` と `/cognizable design` は1回の変換で終わる。会話のルール R1〜R19 は、変換の前後の応答にも適用する。
+
+## フック
+
+`hooks/cognizable_hook.py` を Claude Code のフックに登録すると、`/cognizable` と打たなくても、毎回の応答に cognizable が適用される。フックは次の3つを行う。
+
+| イベント | すること |
+|----------|----------|
+| UserPromptSubmit | 毎回の依頼に「cognizable を適用し、日本語で答える」指示を足す。依頼が質問なら「ファイルを変更せず、回答だけ返す」指示も足す |
+| PreToolUse | 依頼が質問の間は、ファイルを変更するツール（Edit、Write、MultiEdit、NotebookEdit）を止める |
+| Stop | 回答のコードブロックの外に英文の行が3行以上あれば、日本語に直して答え直させる |
+
+フックが「この依頼は質問」と伝えたら、ドキュメントや文章を変更しない。変更したほうがよいと考えたら、変更の案を回答に書き、読み手の依頼を待つ。登録の手順は README の「フック」にある。
 
 ## 前提: この読み手に何が起きるか
 
